@@ -3,7 +3,7 @@
 [![CI](https://github.com/npow/agenttrace/actions/workflows/ci.yml/badge.svg)](https://github.com/npow/agenttrace/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/sessionlog)](https://pypi.org/project/sessionlog/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/) [![Docs](https://img.shields.io/badge/docs-mintlify-18a34a?style=flat-square)](https://mintlify.com/npow/sessionlog)
 
 See exactly what your AI coding agent did — every tool call, error, and decision, ingested in real time.
 
