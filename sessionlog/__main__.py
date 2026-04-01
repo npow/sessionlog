@@ -13,7 +13,12 @@ def cli():
 
 
 @cli.command()
-@click.option("--db", default="~/.sessionlog/data.sqlite", show_default=True, help="SQLite database path")
+@click.option(
+    "--db",
+    default="~/.sessionlog/data.sqlite",
+    show_default=True,
+    help="SQLite database path",
+)
 @click.option(
     "--sources-dir",
     "sources_dirs",
@@ -48,14 +53,24 @@ def status():
 
 
 @cli.command()
-@click.option("--force", is_flag=True, default=False, help="Re-ingest all files, ignoring the ingestion log.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Re-ingest all files, ignoring the ingestion log.",
+)
 @click.option(
     "--sources-dir",
     "sources_dirs",
     multiple=True,
     help="Session source directory (repeatable). Use name=/path for explicit source labels.",
 )
-@click.option("--db", default="~/.sessionlog/data.sqlite", show_default=True, help="SQLite database path")
+@click.option(
+    "--db",
+    default="~/.sessionlog/data.sqlite",
+    show_default=True,
+    help="SQLite database path",
+)
 def ingest(force: bool, sources_dirs: tuple[str, ...], db: str):
     """Run a one-shot incremental ingestion of all JSONL files."""
     db_path = os.path.expanduser(db)

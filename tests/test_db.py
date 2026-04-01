@@ -3,12 +3,11 @@
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 
 def make_conn(db_path: Path) -> sqlite3.Connection:
     """Create a fresh SQLite connection pointing at a temp path."""
     import os
+
     os.environ["CLAUDE_RETRO_DB"] = str(db_path)
 
     # Force db module to re-initialize with the new path
@@ -27,7 +26,7 @@ def make_conn(db_path: Path) -> sqlite3.Connection:
 class TestSchemaCreation:
     def test_get_writer_creates_all_tables(self, tmp_path):
         db_path = tmp_path / "test.sqlite"
-        conn, db_mod = make_conn(db_path)[0], make_conn(db_path)[1]
+        conn = make_conn(db_path)[0]
 
         tables = {
             row[0]
@@ -53,7 +52,10 @@ class TestSchemaCreation:
         db_path = tmp_path / "test2.sqlite"
         conn, _ = make_conn(db_path)
 
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(progress_entries)").fetchall()}
+        cols = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(progress_entries)").fetchall()
+        }
         expected_cols = {
             "entry_id",
             "session_id",
@@ -71,7 +73,10 @@ class TestSchemaCreation:
         db_path = tmp_path / "test3.sqlite"
         conn, _ = make_conn(db_path)
 
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(session_features)").fetchall()}
+        cols = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(session_features)").fetchall()
+        }
         assert "subagent_spawn_count" in cols
         assert "subagent_tool_diversity" in cols
         assert "subagent_error_rate" in cols
@@ -90,6 +95,7 @@ class TestSchemaCreation:
     def test_migrate_add_columns_is_idempotent(self, tmp_path):
         db_path = tmp_path / "test5.sqlite"
         import os
+
         os.environ["CLAUDE_RETRO_DB"] = str(db_path)
 
         import importlib
@@ -102,16 +108,27 @@ class TestSchemaCreation:
         conn = db_mod.get_writer()
 
         # Call _migrate_add_columns twice with the same columns — must not raise
-        db_mod._migrate_add_columns(conn, "session_features", [
-            ("subagent_spawn_count", "INTEGER DEFAULT 0"),
-            ("bash_heartbeat_count", "INTEGER DEFAULT 0"),
-        ])
-        db_mod._migrate_add_columns(conn, "session_features", [
-            ("subagent_spawn_count", "INTEGER DEFAULT 0"),
-            ("bash_heartbeat_count", "INTEGER DEFAULT 0"),
-        ])
+        db_mod._migrate_add_columns(
+            conn,
+            "session_features",
+            [
+                ("subagent_spawn_count", "INTEGER DEFAULT 0"),
+                ("bash_heartbeat_count", "INTEGER DEFAULT 0"),
+            ],
+        )
+        db_mod._migrate_add_columns(
+            conn,
+            "session_features",
+            [
+                ("subagent_spawn_count", "INTEGER DEFAULT 0"),
+                ("bash_heartbeat_count", "INTEGER DEFAULT 0"),
+            ],
+        )
 
         # Columns should still exist
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(session_features)").fetchall()}
+        cols = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(session_features)").fetchall()
+        }
         assert "subagent_spawn_count" in cols
         assert "bash_heartbeat_count" in cols

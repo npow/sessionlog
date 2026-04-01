@@ -3,15 +3,13 @@
 import importlib
 import json
 import os
-import sqlite3
 from pathlib import Path
-
-import pytest
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_db(db_path: Path):
     """Set env, reload modules, return (conn, db_mod, ingest_mod)."""
@@ -50,7 +48,12 @@ RAW_ASSISTANT = {
     "message": {
         "model": "claude-opus-4-6",
         "content": [
-            {"type": "tool_use", "id": "tu1", "name": "Read", "input": {"file_path": "/foo.py"}},
+            {
+                "type": "tool_use",
+                "id": "tu1",
+                "name": "Read",
+                "input": {"file_path": "/foo.py"},
+            },
         ],
         "usage": {"input_tokens": 200, "output_tokens": 30},
     },
@@ -88,7 +91,12 @@ PROGRESS_AGENT = {
             "message": {
                 "role": "assistant",
                 "content": [
-                    {"type": "tool_use", "id": "sub-bash-1", "name": "Bash", "input": {"command": "ls"}},
+                    {
+                        "type": "tool_use",
+                        "id": "sub-bash-1",
+                        "name": "Bash",
+                        "input": {"command": "ls"},
+                    },
                 ],
             },
         },
@@ -139,7 +147,7 @@ CODEX_TOOL_CALL = {
     "payload": {
         "type": "function_call",
         "name": "exec_command",
-        "arguments": "{\"cmd\":\"ls -la\"}",
+        "arguments": '{"cmd":"ls -la"}',
         "call_id": "call_abc123",
     },
 }
@@ -159,20 +167,24 @@ CODEX_TOOL_RESULT = {
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestIngestFileCounts:
     def test_ingest_file_returns_correct_raw_and_progress_counts(self, tmp_path):
         db_path = tmp_path / "test.sqlite"
         conn, _, ingest_mod = _make_db(db_path)
 
         jsonl = tmp_path / "session.jsonl"
-        _write_jsonl(jsonl, [
-            RAW_ASSISTANT,
-            RAW_USER_TOOL_RESULT,
-            SYSTEM_TURN,
-            PROGRESS_AGENT,
-            PROGRESS_BASH,
-            PROGRESS_MCP,   # should NOT be counted
-        ])
+        _write_jsonl(
+            jsonl,
+            [
+                RAW_ASSISTANT,
+                RAW_USER_TOOL_RESULT,
+                SYSTEM_TURN,
+                PROGRESS_AGENT,
+                PROGRESS_BASH,
+                PROGRESS_MCP,  # should NOT be counted
+            ],
+        )
 
         raw_count, progress_count = ingest_mod.ingest_file(jsonl, "proj", conn)
 
@@ -192,12 +204,16 @@ class TestProgressEntriesTable:
 
         ingest_mod.ingest_file(jsonl, "proj", conn)
 
-        rows = conn.execute("SELECT entry_id FROM progress_entries ORDER BY entry_id").fetchall()
+        rows = conn.execute(
+            "SELECT entry_id FROM progress_entries ORDER BY entry_id"
+        ).fetchall()
         entry_ids = {r[0] for r in rows}
         assert "prog-1" in entry_ids
         assert "bash-prog-1" in entry_ids
 
-    def test_agent_progress_stored_with_correct_tool_name_and_has_result(self, tmp_path):
+    def test_agent_progress_stored_with_correct_tool_name_and_has_result(
+        self, tmp_path
+    ):
         db_path = tmp_path / "test.sqlite"
         conn, _, ingest_mod = _make_db(db_path)
 
@@ -214,10 +230,14 @@ class TestProgressEntriesTable:
         progress_type, tool_name, has_result, result_error = row
         assert progress_type == "agent_progress"
         assert tool_name == "Bash"
-        assert has_result == 0   # assistant message with tool_use; result comes in a separate user message
+        assert (
+            has_result == 0
+        )  # assistant message with tool_use; result comes in a separate user message
         assert result_error == 0
 
-    def test_bash_progress_stored_with_correct_progress_type_and_no_tool_name(self, tmp_path):
+    def test_bash_progress_stored_with_correct_progress_type_and_no_tool_name(
+        self, tmp_path
+    ):
         db_path = tmp_path / "test.sqlite"
         conn, _, ingest_mod = _make_db(db_path)
 
@@ -263,7 +283,9 @@ class TestRawEntriesTable:
 
         ingest_mod.ingest_file(jsonl, "proj", conn)
 
-        rows = conn.execute("SELECT entry_id FROM raw_entries ORDER BY entry_id").fetchall()
+        rows = conn.execute(
+            "SELECT entry_id FROM raw_entries ORDER BY entry_id"
+        ).fetchall()
         entry_ids = {r[0] for r in rows}
         assert "raw-asst-1" in entry_ids
         assert "raw-user-1" in entry_ids
@@ -318,11 +340,11 @@ class TestCursorTranscriptIngestion:
         db_path = tmp_path / "test.sqlite"
         conn, _, ingest_mod = _make_db(db_path)
         transcript = tmp_path / "cursor-session.txt"
-        transcript.write_text(
-            "user:\nhello there\n\nassistant:\nHi, how can I help?\n"
-        )
+        transcript.write_text("user:\nhello there\n\nassistant:\nHi, how can I help?\n")
 
-        raw_count, progress_count = ingest_mod.ingest_file(transcript, "cursor:demo", conn)
+        raw_count, progress_count = ingest_mod.ingest_file(
+            transcript, "cursor:demo", conn
+        )
         assert raw_count == 2
         assert progress_count == 0
 
@@ -347,7 +369,9 @@ class TestAntigravityMarkdownIngestion:
             json.dumps({"updatedAt": "2026-02-07T12:33:51.402918Z"})
         )
 
-        raw_count, progress_count = ingest_mod.ingest_file(md, "antigravity:brain", conn)
+        raw_count, progress_count = ingest_mod.ingest_file(
+            md, "antigravity:brain", conn
+        )
         assert raw_count == 1
         assert progress_count == 0
 
@@ -369,9 +393,7 @@ class TestAntigravityMarkdownIngestion:
         session_dir = tmp_path / "brain" / "session-abc"
         session_dir.mkdir(parents=True)
         rev = session_dir / "implementation_plan.md.resolved.2"
-        rev.write_text(
-            "# Plan\n```bash\nnpm install\nnpm test\n```\n"
-        )
+        rev.write_text("# Plan\n```bash\nnpm install\nnpm test\n```\n")
 
         raw_count, _ = ingest_mod.ingest_file(rev, "antigravity:brain", conn)
         assert raw_count == 1
@@ -380,7 +402,9 @@ class TestAntigravityMarkdownIngestion:
             "SELECT system_subtype, tool_names, content_types, tool_input_preview FROM raw_entries LIMIT 1"
         ).fetchone()
         assert row is not None
-        assert row[0] == "antigravity_artifact_revision:implementation_plan.md.resolved.2"
+        assert (
+            row[0] == "antigravity_artifact_revision:implementation_plan.md.resolved.2"
+        )
         assert "Bash" in (row[1] or "")
         assert "tool_use" in (row[2] or "")
         assert row[3] == "npm install"

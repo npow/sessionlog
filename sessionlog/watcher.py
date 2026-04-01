@@ -200,6 +200,7 @@ class IngestionWorker(threading.Thread):
         generate_prescriptions()
         self._set_status("Building search index", 10, n)
         from sessionlog.db import rebuild_fts_index
+
         rebuild_fts_index()
         self._set_idle()
 

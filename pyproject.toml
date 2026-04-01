@@ -1,9 +1,9 @@
 [project]
 name = "sessionlog"
-version = "0.1.5"
+version = "0.1.6"
 description = "Real-time ingestion daemon for AI coding agent sessions"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "watchdog>=4.0",
     "click>=8.0",

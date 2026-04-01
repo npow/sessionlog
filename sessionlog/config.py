@@ -64,7 +64,9 @@ def parse_source_specs(raw_values: list[str]) -> list[tuple[str, Path]]:
     return specs
 
 
-def get_source_specs(cli_values: tuple[str, ...] | list[str] | None = None) -> list[tuple[str, Path]]:
+def get_source_specs(
+    cli_values: tuple[str, ...] | list[str] | None = None,
+) -> list[tuple[str, Path]]:
     """Resolve source specs from CLI, env, then defaults."""
     if cli_values:
         parsed = parse_source_specs(list(cli_values))

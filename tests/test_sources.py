@@ -1,7 +1,5 @@
 """Tests for multi-source session discovery."""
 
-from pathlib import Path
-
 from sessionlog.config import get_source_specs, parse_source_specs
 from sessionlog.ingest import find_jsonl_files
 
@@ -41,4 +39,3 @@ def test_find_jsonl_files_reads_all_sources_and_prefixes_project(tmp_path):
     by_path = {p: project for p, project in files}
     assert by_path[c_file] == "claude:project-a"
     assert by_path[x_file] == "codex:workspace-b"
-

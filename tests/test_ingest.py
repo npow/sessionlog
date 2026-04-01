@@ -2,7 +2,6 @@
 
 import json
 
-import pytest
 
 from sessionlog.ingest import parse_entry, parse_progress_entry
 
@@ -12,6 +11,7 @@ PROJECT = "test-project"
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
 # ---------------------------------------------------------------------------
+
 
 def make_line(**kwargs) -> str:
     return json.dumps(kwargs)
@@ -32,9 +32,12 @@ BASE_FIELDS = {
 # parse_entry — filtering
 # ---------------------------------------------------------------------------
 
+
 class TestParseEntryFiltering:
     def test_returns_none_for_progress_type(self):
-        line = make_line(type="progress", uuid="x", sessionId="s", data={"type": "agent_progress"})
+        line = make_line(
+            type="progress", uuid="x", sessionId="s", data={"type": "agent_progress"}
+        )
         assert parse_entry(line, PROJECT) is None
 
     def test_returns_none_for_file_history_snapshot(self):
@@ -52,6 +55,7 @@ class TestParseEntryFiltering:
 # ---------------------------------------------------------------------------
 # parse_entry — assistant with tool_use
 # ---------------------------------------------------------------------------
+
 
 class TestParseEntryAssistantToolUse:
     def test_extracts_tool_names_from_tool_use_blocks(self):
@@ -114,6 +118,7 @@ class TestParseEntryAssistantToolUse:
 # parse_entry — user with text content
 # ---------------------------------------------------------------------------
 
+
 class TestParseEntryUserText:
     def test_parses_user_entry_with_text_content(self):
         line = make_line(
@@ -155,6 +160,7 @@ class TestParseEntryUserText:
 # ---------------------------------------------------------------------------
 # parse_entry — user with tool_result
 # ---------------------------------------------------------------------------
+
 
 class TestParseEntryUserToolResult:
     def test_is_tool_result_true_for_tool_result_blocks(self):
@@ -202,6 +208,7 @@ class TestParseEntryUserToolResult:
 # parse_entry — system turn_duration
 # ---------------------------------------------------------------------------
 
+
 class TestParseEntrySystemTurnDuration:
     def test_parses_system_turn_duration(self):
         line = make_line(
@@ -234,6 +241,7 @@ class TestParseEntrySystemTurnDuration:
 # ---------------------------------------------------------------------------
 # parse_entry — content as plain string
 # ---------------------------------------------------------------------------
+
 
 class TestParseEntryPlainStringContent:
     def test_handles_assistant_content_as_plain_string(self):
@@ -268,6 +276,7 @@ class TestParseEntryPlainStringContent:
 # parse_entry — Codex response_item format
 # ---------------------------------------------------------------------------
 
+
 class TestParseEntryCodexFormat:
     def test_parses_codex_function_call_as_assistant_tool_use(self):
         line = make_line(
@@ -276,7 +285,7 @@ class TestParseEntryCodexFormat:
             payload={
                 "type": "function_call",
                 "name": "exec_command",
-                "arguments": "{\"cmd\":\"rg -n \\\"toLowerCase\\\\(\\\" -S src\"}",
+                "arguments": '{"cmd":"rg -n \\"toLowerCase\\\\(\\" -S src"}',
                 "call_id": "call_abc123",
             },
         )
@@ -309,6 +318,7 @@ class TestParseEntryCodexFormat:
 # ---------------------------------------------------------------------------
 # parse_progress_entry — filtering
 # ---------------------------------------------------------------------------
+
 
 class TestParseProgressEntryFiltering:
     def test_returns_none_for_non_progress_type(self):
@@ -345,6 +355,7 @@ class TestParseProgressEntryFiltering:
 # parse_progress_entry — agent_progress
 # ---------------------------------------------------------------------------
 
+
 class TestParseProgressEntryAgentProgress:
     # Real format: parentUuid (outer) = parent Task's UUID.
     # tool_name extracted from assistant messages; has_result from user tool_result messages.
@@ -364,7 +375,12 @@ class TestParseProgressEntryAgentProgress:
                     "message": {
                         "role": "assistant",
                         "content": [
-                            {"type": "tool_use", "id": "sub-tu1", "name": "Read", "input": {"file_path": "/foo.py"}},
+                            {
+                                "type": "tool_use",
+                                "id": "sub-tu1",
+                                "name": "Read",
+                                "input": {"file_path": "/foo.py"},
+                            },
                         ],
                     },
                 },
@@ -395,7 +411,12 @@ class TestParseProgressEntryAgentProgress:
                     "message": {
                         "role": "user",
                         "content": [
-                            {"type": "tool_result", "tool_use_id": "sub-tu1", "content": "file content", "is_error": False},
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": "sub-tu1",
+                                "content": "file content",
+                                "is_error": False,
+                            },
                         ],
                     },
                 },
@@ -422,7 +443,12 @@ class TestParseProgressEntryAgentProgress:
                     "message": {
                         "role": "user",
                         "content": [
-                            {"type": "tool_result", "tool_use_id": "sub-tu2", "content": "bash: not found", "is_error": True},
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": "sub-tu2",
+                                "content": "bash: not found",
+                                "is_error": True,
+                            },
                         ],
                     },
                 },
@@ -437,6 +463,7 @@ class TestParseProgressEntryAgentProgress:
 # ---------------------------------------------------------------------------
 # parse_progress_entry — bash_progress
 # ---------------------------------------------------------------------------
+
 
 class TestParseProgressEntryBashProgress:
     def test_parses_bash_progress_with_no_tool_name_or_has_result(self):

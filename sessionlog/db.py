@@ -9,7 +9,6 @@ SQLite with WAL mode supports:
 
 import sqlite3
 import threading
-from pathlib import Path
 
 from sessionlog.config import DB_PATH
 
@@ -40,7 +39,7 @@ def get_reader() -> sqlite3.Connection:
     Each thread gets its own reader. Uses autocommit so each query sees
     the latest committed WAL data without holding a stale snapshot.
     """
-    if not hasattr(_local, 'reader'):
+    if not hasattr(_local, "reader"):
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         _local.reader = _connect(autocommit=True)
     return _local.reader
@@ -79,7 +78,9 @@ def _connect(autocommit: bool = False) -> sqlite3.Connection:
 
 def _migrate_add_columns(conn: sqlite3.Connection, table: str, columns: list):
     """Add columns to table if they don't exist (safe migration)."""
-    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    existing = {
+        row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
     for col_name, col_type in columns:
         if col_name not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
@@ -366,24 +367,32 @@ def _init_schema(conn: sqlite3.Connection):
     """)
 
     # Migrate: add new columns to raw_entries if missing
-    _migrate_add_columns(conn, "raw_entries", [
-        ("agent_type", "TEXT DEFAULT 'unknown'"),
-        ("tool_result_error_type", "TEXT"),
-        ("tool_file_paths", "TEXT"),
-        # Primary tool's key input: Bash command, Task prompt snippet, etc.
-        # Lets the live monitor show "what it's doing" beyond just the tool name.
-        ("tool_input_preview", "TEXT"),
-    ])
+    _migrate_add_columns(
+        conn,
+        "raw_entries",
+        [
+            ("agent_type", "TEXT DEFAULT 'unknown'"),
+            ("tool_result_error_type", "TEXT"),
+            ("tool_file_paths", "TEXT"),
+            # Primary tool's key input: Bash command, Task prompt snippet, etc.
+            # Lets the live monitor show "what it's doing" beyond just the tool name.
+            ("tool_input_preview", "TEXT"),
+        ],
+    )
 
     # Migrate: add new columns to session_judgments if missing
-    _migrate_add_columns(conn, "session_judgments", [
-        ("narrative", "TEXT"),
-        ("what_worked", "TEXT"),
-        ("what_failed", "TEXT"),
-        ("user_quote", "TEXT"),
-        ("claude_md_suggestion", "TEXT"),
-        ("claude_md_rationale", "TEXT"),
-    ])
+    _migrate_add_columns(
+        conn,
+        "session_judgments",
+        [
+            ("narrative", "TEXT"),
+            ("what_worked", "TEXT"),
+            ("what_failed", "TEXT"),
+            ("user_quote", "TEXT"),
+            ("claude_md_suggestion", "TEXT"),
+            ("claude_md_rationale", "TEXT"),
+        ],
+    )
 
     # FTS5 virtual table for full-text search across messages
     conn.execute("""
@@ -396,23 +405,43 @@ def _init_schema(conn: sqlite3.Connection):
     """)
 
     # Migrate: add subagent feature columns to session_features if missing
-    _migrate_add_columns(conn, "session_features", [
-        ("subagent_spawn_count",   "INTEGER DEFAULT 0"),
-        ("subagent_tool_diversity", "INTEGER DEFAULT 0"),
-        ("subagent_error_rate",    "REAL DEFAULT 0"),
-        ("bash_heartbeat_count",   "INTEGER DEFAULT 0"),
-    ])
-    _migrate_add_columns(conn, "progress_entries", [
-        ("agent_type", "TEXT DEFAULT 'unknown'"),
-    ])
+    _migrate_add_columns(
+        conn,
+        "session_features",
+        [
+            ("subagent_spawn_count", "INTEGER DEFAULT 0"),
+            ("subagent_tool_diversity", "INTEGER DEFAULT 0"),
+            ("subagent_error_rate", "REAL DEFAULT 0"),
+            ("bash_heartbeat_count", "INTEGER DEFAULT 0"),
+        ],
+    )
+    _migrate_add_columns(
+        conn,
+        "progress_entries",
+        [
+            ("agent_type", "TEXT DEFAULT 'unknown'"),
+        ],
+    )
 
     # Create indexes for common queries
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_entries_session ON raw_entries(session_id)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_entries_timestamp ON raw_entries(timestamp_utc)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_name)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_progress_session ON progress_entries(session_id)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_progress_type ON progress_entries(progress_type)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_raw_entries_session ON raw_entries(session_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_raw_entries_timestamp ON raw_entries(timestamp_utc)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_name)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_progress_session ON progress_entries(session_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_progress_type ON progress_entries(progress_type)"
+    )
 
     conn.commit()
 

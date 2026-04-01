@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 
 from sessionlog.config import get_source_specs
-from sessionlog.db import get_conn
 
 
 def _json_serialize(obj):
@@ -39,13 +38,25 @@ def _infer_agent_type(project_name: str) -> str:
         return head or "unknown"
     p = project_name.strip().lower()
     known = {
-        "claude", "codex", "cursor", "antigravity", "opencode",
-        "copilot", "windsurf", "cline", "roo", "aider", "gemini", "continue",
+        "claude",
+        "codex",
+        "cursor",
+        "antigravity",
+        "opencode",
+        "copilot",
+        "windsurf",
+        "cline",
+        "roo",
+        "aider",
+        "gemini",
+        "continue",
     }
     return p if p in known else "unknown"
 
 
-def find_jsonl_files(source_specs: list[tuple[str, Path]] | None = None) -> list[tuple[Path, str]]:
+def find_jsonl_files(
+    source_specs: list[tuple[str, Path]] | None = None,
+) -> list[tuple[Path, str]]:
     """Find supported session files across all configured agent sources."""
     results = []
     specs = source_specs if source_specs is not None else get_source_specs()
@@ -70,7 +81,9 @@ def find_jsonl_files(source_specs: list[tuple[str, Path]] | None = None) -> list
                 results.append((rev_file, project_name))
             for tracker_file in sorted(source_dir.rglob("code_tracker/active/**/*")):
                 if tracker_file.is_file():
-                    project_name = _derive_project_name(source_name, source_dir, tracker_file)
+                    project_name = _derive_project_name(
+                        source_name, source_dir, tracker_file
+                    )
                     results.append((tracker_file, project_name))
     return results
 
@@ -151,12 +164,15 @@ def _classify_tool_error(text: str) -> str:
     if "file has changed" in t or "file was modified" in t or "has been modified" in t:
         return "file_changed"
     # File too large for context window
-    if "too large" in t or "exceeds maximum" in t or ("file content" in t and "tokens" in t):
+    if (
+        "too large" in t
+        or "exceeds maximum" in t
+        or ("file content" in t and "tokens" in t)
+    ):
         return "file_too_large"
     # System permission denial (Claude Code's permission system)
-    if (
-        ("permission to use" in t and "denied" in t)
-        or ("requested permissions" in t and "but you" in t)
+    if ("permission to use" in t and "denied" in t) or (
+        "requested permissions" in t and "but you" in t
     ):
         return "permission_denied"
     # Explicit user rejection
@@ -370,7 +386,9 @@ def parse_entry(
                 "user_text_length": len(out_short),
                 "is_tool_result": True,
                 "tool_result_error": err,
-                "tool_result_error_type": _classify_tool_error(out_text) if err else None,
+                "tool_result_error_type": _classify_tool_error(out_text)
+                if err
+                else None,
                 "model": None,
                 "content_types": ["tool_result"],
                 "tool_names": [],
@@ -429,11 +447,11 @@ def parse_entry(
 
     # Tools whose primary input is a free-text string worth storing for live display
     _TEXT_INPUT_TOOLS: dict[str, str] = {
-        "Bash":      "command",
-        "Task":      "prompt",
+        "Bash": "command",
+        "Task": "prompt",
         "WebSearch": "query",
-        "WebFetch":  "url",
-        "Grep":      "pattern",
+        "WebFetch": "url",
+        "Grep": "pattern",
     }
     tool_input_preview = ""
 
@@ -480,7 +498,8 @@ def parse_entry(
                 # Extract the tool result output text (cap at 1500 chars)
                 if isinstance(tr_content, list):
                     tr_texts = [
-                        c.get("text", "") for c in tr_content
+                        c.get("text", "")
+                        for c in tr_content
                         if isinstance(c, dict) and c.get("type") == "text"
                     ]
                     tr_text = "\n".join(tr_texts)
@@ -623,7 +642,9 @@ def _ingest_cursor_transcript(file_path: Path, project_name: str, conn) -> int:
         text = "\n".join(block_lines).strip()
         if not text:
             return
-        entry_id = _stable_entry_id(f"{file_path}:{index}:{block_role}:{text}", project_name)
+        entry_id = _stable_entry_id(
+            f"{file_path}:{index}:{block_role}:{text}", project_name
+        )
         conn.execute(
             """
             INSERT OR REPLACE INTO raw_entries (
@@ -693,10 +714,20 @@ def _ingest_cursor_transcript(file_path: Path, project_name: str, conn) -> int:
 
 def _ingest_antigravity_markdown(file_path: Path, project_name: str, conn) -> int:
     """Ingest Antigravity brain markdown artifacts as assistant entries."""
+
     def _normalize_text_payload(raw: bytes) -> str:
         text0 = raw.decode("utf-8", errors="replace")
         # Drop binary-ish prefix if present before first obvious markdown/text marker.
-        candidates = [p for p in (text0.find("#"), text0.find("##"), text0.find("- ["), text0.find("Task")) if p >= 0]
+        candidates = [
+            p
+            for p in (
+                text0.find("#"),
+                text0.find("##"),
+                text0.find("- ["),
+                text0.find("Task"),
+            )
+            if p >= 0
+        ]
         if candidates:
             start = min(candidates)
             text0 = text0[start:]
@@ -704,7 +735,9 @@ def _ingest_antigravity_markdown(file_path: Path, project_name: str, conn) -> in
 
     def _extract_shell_commands(text_payload: str) -> list[str]:
         cmds: list[str] = []
-        for m in re.finditer(r"```(?:bash|sh|zsh)?\n(.*?)```", text_payload, flags=re.S):
+        for m in re.finditer(
+            r"```(?:bash|sh|zsh)?\n(.*?)```", text_payload, flags=re.S
+        ):
             block = m.group(1)
             for line in block.splitlines():
                 c = line.strip()
@@ -828,7 +861,9 @@ def ingest_file(file_path: Path, project_name: str, conn) -> tuple[int, int]:
             except json.JSONDecodeError:
                 pass
 
-            entry = parse_entry(line, project_name, fallback_session_id=fallback_session_id)
+            entry = parse_entry(
+                line, project_name, fallback_session_id=fallback_session_id
+            )
             if entry:
                 entries.append(entry)
             else:
@@ -838,6 +873,7 @@ def ingest_file(file_path: Path, project_name: str, conn) -> tuple[int, int]:
 
     # Accumulate language counts per session while inserting
     from collections import Counter
+
     session_lang_counts: dict[str, Counter] = {}
 
     for entry in entries:
@@ -858,7 +894,9 @@ def ingest_file(file_path: Path, project_name: str, conn) -> tuple[int, int]:
                 entry["entry_id"],
                 entry["session_id"],
                 entry["project_name"],
-                entry.get("agent_type", _infer_agent_type(entry.get("project_name", ""))),
+                entry.get(
+                    "agent_type", _infer_agent_type(entry.get("project_name", ""))
+                ),
                 entry["entry_type"],
                 entry["timestamp_utc"],
                 entry["parent_uuid"],
@@ -971,7 +1009,9 @@ def run_ingest(source_specs: list[tuple[str, Path]] | None = None) -> dict:
             error_message = str(e)
             mark_skip(file_path, error_type, error_message, conn)
             stats["failed_files"] += 1
-            print(f"[ingest] Failed to ingest {file_path}: {error_type}: {error_message}")
+            print(
+                f"[ingest] Failed to ingest {file_path}: {error_type}: {error_message}"
+            )
 
     stats["total_entries_in_db"] = conn.execute(
         "SELECT COUNT(*) FROM raw_entries"
