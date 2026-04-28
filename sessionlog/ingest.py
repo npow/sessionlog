@@ -452,6 +452,8 @@ def parse_entry(
         "WebSearch": "query",
         "WebFetch": "url",
         "Grep": "pattern",
+        "Skill": "skill",
+        "Agent": "description",
     }
     tool_input_preview = ""
 
